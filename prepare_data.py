@@ -27,15 +27,15 @@ data_handler_config = {
     "fit_end_time": "2014-12-31",
     "instruments": market,
     "learn_processors": [
-        {"class": "DropCol", "kwargs": {"col_list": ["VWAP0", "KUP", "KUP2", "HIGH0", "IMIN5"]}},
         {"class": "RobustZScoreNorm", "kwargs": {"fields_group": "feature", "clip_outlier": True}},
         {"class": "DropnaLabel"},
-        {"class": "CSZFillna", "kwargs": {"fields_group": "feature"}},
+        {"class": 'CSRankNorm', 'kwargs' : {'fields_group': 'label'}},
+        {"class": "Fillna", "kwargs": {"fields_group": "feature"}},
     ],
     "infer_processors": [
-        {"class": "DropCol", "kwargs": {"col_list": ["VWAP0", "KUP", "KUP2", "HIGH0", "IMIN5"]}},
         {"class": "RobustZScoreNorm", "kwargs": {"fields_group": "feature", "clip_outlier": True}},
-        {"class": "CSZFillna", "kwargs": {"fields_group": "feature"}},
+        {"class": 'CSRankNorm', 'kwargs' : {'fields_group': 'label'}},
+        {"class": "Fillna", "kwargs": {"fields_group": "feature"}},
     ],
     "label": [f"Ref($close, -{label})/$close - 1"],
 }
@@ -45,14 +45,14 @@ dataset_config = {
     "module_path": "qlib.data.dataset",
     "kwargs": {
         "handler": {
-            "class": "Alpha158",
+            "class": "Alpha360",
             "module_path": "qlib.contrib.data.handler",
             "kwargs": data_handler_config,
         },
         "segments": {
-            "train": ("2008-01-01", "2014-12-31"),
-            "valid": ("2015-01-01", "2016-12-31"),
-            "test": ("2017-01-01", "2020-08-01"),
+            "train": ("2010-01-01", "2017-12-31"),
+            "valid": ("2018-01-01", "2018-12-31"),
+            "test": ("2019-01-01", "2020-08-01"),
         },
     },
 }
@@ -141,7 +141,7 @@ def prepare_data(riskdata_root="./riskdata", T=240, start_time="2010-12-01"):
 
 dataset = init_instance_by_config(dataset_config)
 df_train = dataset.prepare("train", col_set=["feature", "label"], data_key=DataHandlerLP.DK_L)
-df_valid = dataset.prepare("valid", col_set=["feature", "label"], data_key=DataHandlerLP.DK_I)
+df_valid = dataset.prepare("valid", col_set=["feature", "label"], data_key=DataHandlerLP.DK_L)
 df_test = dataset.prepare("test", col_set=["feature", "label"], data_key=DataHandlerLP.DK_I)
 
 if region == "CN":
@@ -157,8 +157,8 @@ else:
     raise NotImplementedError
 
 # train label cross-sectional z-score
-df_train["label"] = df_train["label"].groupby("datetime").apply(robust_z_score)
-
+# df_train["label"] = df_train["label"].groupby("datetime").apply(robust_z_score)
+print(df_train.shape)
 with open(
     "./data/{}_feature_dataset_market_{}_{}_start{}_end{}_label{}".format(region, market, "train", "2008-01-01", "2014-12-31",label), "wb"
 ) as f:
